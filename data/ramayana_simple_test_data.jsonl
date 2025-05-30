@@ -1,0 +1,20 @@
+{"statement": "Rama was the prince of Ayodhya.", "label": "TRUE"}
+{"statement": "Ravana was the king of Lanka.", "label": "TRUE"}
+{"statement": "Sita was Rama's wife.", "label": "TRUE"}
+{"statement": "Hanuman was devoted to Rama.", "label": "TRUE"}
+{"statement": "Lakshmana was Rama's brother.", "label": "TRUE"}
+{"statement": "Dasaratha was Rama's father.", "label": "TRUE"}
+{"statement": "Ravana had ten heads.", "label": "TRUE"}
+{"statement": "Rama was exiled for fourteen years.", "label": "TRUE"}
+{"statement": "Sita was kidnapped by Ravana.", "label": "TRUE"}
+{"statement": "Hanuman could fly.", "label": "TRUE"}
+{"statement": "Rama was the king of Lanka.", "label": "FALSE"}
+{"statement": "Ravana was Rama's brother.", "label": "FALSE"}
+{"statement": "Sita was the queen of Lanka.", "label": "FALSE"}
+{"statement": "Hanuman was Ravana's minister.", "label": "FALSE"}
+{"statement": "Lakshmana was the king of Ayodhya.", "label": "FALSE"}
+{"statement": "Dasaratha ruled Lanka.", "label": "FALSE"}
+{"statement": "Ravana had five heads.", "label": "FALSE"}
+{"statement": "Rama was exiled for seven years.", "label": "FALSE"}
+{"statement": "Sita was kidnapped by Hanuman.", "label": "FALSE"}
+{"statement": "Ravana could fly.", "label": "TRUE"}

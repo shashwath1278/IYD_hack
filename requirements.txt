@@ -1,0 +1,35 @@
+# Open Source Requirements for Ramayana Fact Checker
+# All packages are completely free and open source
+
+# Core ML libraries
+torch>=1.9.0
+transformers>=4.20.0
+datasets>=2.0.0
+scikit-learn>=1.0.0
+accelerate>=0.26.0
+
+# Data processing
+pandas>=1.3.0
+numpy>=1.21.0
+
+# Optional: for better progress bars and logging
+tqdm>=4.60.0
+
+# For JSONL file handling
+jsonlines>=3.0.0
+
+# Additional useful packages
+matplotlib>=3.5.0
+seaborn>=0.11.0
+nltk>=3.7
+sentence-transformers>=2.2.0
+
+# Ollama API client
+ollama>=0.1.0
+requests>=2.25.0
+
+# For argument parsing and system utilities
+argparse
+
+# Note: No proprietary or paid APIs required!
+# Everything runs locally on your machine with Ollama.
