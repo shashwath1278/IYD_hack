@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+wheels/
+pip-wheel-metadata/
+*.log
+*.logs
+logs/
+*.log.*
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+VENV/
+env.bak/
+venv.bak/
+ENV.bak/
+VENV.bak/
+# Operating System Files
+.DS_Store
+Thumbs.db
+# IDE / Editor specific files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+*~
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints
+
+# Specific output files from your project
+data/my_detailed_results.jsonl
+evaluation_summary.txt
+
+# Model files and checkpoints
+ramayana_model/
+*.safetensors
+*.pt
+*.pth
+*.bin
+
+# NLTK Data (if downloaded locally within project, though typically global)
+# nltk_data/
+
+# Other potentially generated files
+# Add any other specific files or directories you want to ignore
