@@ -23,7 +23,7 @@
 
 - **Accuracy:** ~90% on 20 diverse Ramayana statements
 - **Average time per claim:** 25–35 seconds (on consumer CPU, Llama 3.8B)
-- **Total time for 20 claims:** ~9 minutes
+- **Total (avg) time for 20 claims:** ~25 minutes (depending on complexity)
 - **Memory usage:** 8–16GB RAM (depends on Ollama/Llama model)
 - **Explainability:** Every verdict comes with context evidence and reasoning
 
