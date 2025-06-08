@@ -1,0 +1,10 @@
+Evaluation Summary
+--------------------
+Model Used: ramayana-fact-checker:latest.
+Evaluation Data: valmiki_verses_initial_data.jsonl
+Total statements: 20
+Correct predictions: 17
+Accuracy: 85.00%
+Total time taken: 1791.22 seconds
+Average time per statement: 89.56 seconds
+Detailed results logged to: D:\New folder\Hackathon projects\IYD\evaluation_results.jsonl

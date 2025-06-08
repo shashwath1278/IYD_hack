@@ -11,7 +11,7 @@ import requests
 import time
 
 class OllamaModelTrainer:
-    def __init__(self, base_model: str = "llama3:8b", ollama_host: str = "http://localhost:11434"):
+    def __init__(self, base_model: str = "ramayana-fact-checker:latest", ollama_host: str = "http://localhost:11434"):
         self.base_model = base_model
         self.ollama_host = ollama_host
         self.custom_model_name = "ramayana-fact-checker"

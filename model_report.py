@@ -1,6 +1,7 @@
 import argparse
 import json
 import logging
+import time
 from pathlib import Path
 
 try:
@@ -28,7 +29,7 @@ logger = logging.getLogger("model_report")
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate Ramayana Fact Checker and Log Results")
-    parser.add_argument("--model_name", type=str, default="llama3:8b", help="Ollama model name to use for fact checking.")
+    parser.add_argument("--model_name", type=str, default="ramayana-fact-checker:latest", help="Ollama model name to use for fact checking.")
     parser.add_argument("--eval_data_file", type=str, required=True, help="Path to the evaluation data JSONL file.")
     parser.add_argument("--output_log_file", type=str, default="evaluation_results.jsonl", help="Path to save the detailed evaluation log.")
 
@@ -68,6 +69,8 @@ def main():
     logger.info(f"Starting evaluation. Results will be logged to: {output_log_path}")
 
     correct_predictions = 0
+    statement_times = []
+    total_start_time = time.time()
     
     try:
         with open(output_log_path, 'w', encoding='utf-8') as log_f:
@@ -81,6 +84,7 @@ def main():
 
                 logger.info(f"Processing statement {i}/{len(statements_to_evaluate)}: \"{claim[:70]}...\" (Expected: {expected_label})")
                 
+                start_time = time.time()
                 try:
                     result = fact_checker.fact_check(claim)
                     model_verdict = result.get("verdict", "ERROR_NO_VERDICT")
@@ -91,8 +95,10 @@ def main():
                     model_verdict = "ERROR_DURING_FACT_CHECK"
                     model_confidence = 0.0
                     model_reasoning = f"Error during fact-checking: {e}"
-
-                logger.info(f"  Model Verdict: {model_verdict} (Confidence: {model_confidence:.2f})")
+                end_time = time.time()
+                elapsed = end_time - start_time
+                statement_times.append(elapsed)
+                logger.info(f"  Model Verdict: {model_verdict} (Confidence: {model_confidence:.2f}) | Time taken: {elapsed:.2f} sec")
 
                 log_entry = {
                     "claim": claim,
@@ -100,7 +106,8 @@ def main():
                     "model_verdict": model_verdict,
                     "model_confidence": model_confidence,
                     "model_reasoning": model_reasoning,
-                    "model_used": fact_checker.model_name 
+                    "model_used": fact_checker.model_name,
+                    "time_taken_sec": round(elapsed, 3)
                 }
                 log_f.write(json.dumps(log_entry) + '\n')
 
@@ -112,8 +119,10 @@ def main():
         logger.error(f"Failed to write to output log file {output_log_path}: {e}")
         return
 
+    total_end_time = time.time()
+    total_time = total_end_time - total_start_time
     accuracy = (correct_predictions / len(statements_to_evaluate)) * 100 if statements_to_evaluate else 0
-    
+
     summary_log_file_path = Path("evaluation_summary.txt")
     try:
         with open(summary_log_file_path, 'w', encoding='utf-8') as summary_f:
@@ -124,10 +133,11 @@ def main():
             summary_f.write(f"Total statements: {len(statements_to_evaluate)}\n")
             summary_f.write(f"Correct predictions: {correct_predictions}\n")
             summary_f.write(f"Accuracy: {accuracy:.2f}%\n")
+            summary_f.write(f"Total time taken: {total_time:.2f} seconds\n")
+            summary_f.write(f"Average time per statement: {sum(statement_times)/len(statement_times):.2f} seconds\n")
             summary_f.write(f"Detailed results logged to: {output_log_path.resolve()}\n")
     except Exception as e:
         logger.error(f"Failed to write summary log file {summary_log_file_path}: {e}")
-
 
     logger.info("\nEvaluation Complete.")
     logger.info(f"Model Used: {fact_checker.model_name}")
@@ -135,9 +145,10 @@ def main():
     logger.info(f"Total statements: {len(statements_to_evaluate)}")
     logger.info(f"Correct predictions: {correct_predictions}")
     logger.info(f"Accuracy: {accuracy:.2f}%")
+    logger.info(f"Total time taken: {total_time:.2f} seconds")
+    logger.info(f"Average time per statement: {sum(statement_times)/len(statement_times):.2f} seconds")
     logger.info(f"Detailed results have been logged to: {output_log_path.resolve()}")
     logger.info(f"A summary has also been saved to: {summary_log_file_path.resolve()}")
-
 
 if __name__ == "__main__":
     main()

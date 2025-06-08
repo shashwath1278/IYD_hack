@@ -61,7 +61,7 @@ TOP_N_KEYWORDS_FOR_RETRIEVAL = 10
 DEBUG_RETRIEVAL = True
 
 class OllamaRamayanaFactChecker:
-    def __init__(self, model_name: str = "llama3:8b", ollama_host: str = "http://localhost:11434"):
+    def __init__(self, model_name: str = "ramayana-fact-checker:latest", ollama_host: str = "http://localhost:11434"):
         self.model_name = model_name
         self.ollama_host = ollama_host
         self.api_url = f"{ollama_host}/api/generate"
@@ -369,13 +369,13 @@ EXPLANATION: [Your overall reasoning for the verdict, linking back to the compon
         """Parse the model's fact-checking response, adapting to new REASONING field."""
         result = {
             "claim": original_claim, "verdict": "INSUFFICIENT_DATA", "confidence": 0.0,
-            "component_analysis": {}, "evidence": "", "explanation": "", "reasoning": ""
+            "reasoning": response, "evidence": "", "explanation": response,
+            "model_used": self.model_name
         }
-        lines = response.split('\n')
-        current_key = None
-        accumulated_value = []
-        
         try:
+            lines = response.split('\n')
+            current_key = None
+            accumulated_value = []
             for line_idx, line in enumerate(lines):
                 line_stripped = line.strip()
                 if line_stripped.startswith('VERDICT:'):
@@ -383,38 +383,102 @@ EXPLANATION: [Your overall reasoning for the verdict, linking back to the compon
                     verdict = line_stripped.replace('VERDICT:', '').strip()
                     if verdict in ['TRUE', 'FALSE', 'PARTIALLY_TRUE', 'INSUFFICIENT_DATA']: result['verdict'] = verdict
                     current_key = 'verdict_details'; accumulated_value = []
-                elif line_stripped.startswith('REASONING:'):
+                elif line_stripped.startswith('COMPONENT_ANALYSIS:'): # Added for new prompt structure
                     if current_key and accumulated_value: result[current_key.lower()] = "\n".join(accumulated_value).strip()
+                    component_analysis_text = line_stripped.replace('COMPONENT_ANALYSIS:', '').strip()
+                    accumulated_value = [component_analysis_text] if component_analysis_text else []
+                    # Capture multi-line component analysis
+                    for next_line in lines[line_idx+1:]:
+                        if next_line.strip().startswith('EVIDENCE:') or \
+                           next_line.strip().startswith('VERDICT:') or \
+                           next_line.strip().startswith('CONFIDENCE:') or \
+                           next_line.strip().startswith('EXPLANATION:'): # Stop before next key
+                            break
+                        accumulated_value.append(next_line)
+                    result['component_analysis'] = "\n".join(accumulated_value).strip()
+                    current_key = 'component_analysis_processed'; accumulated_value = []
+                elif line_stripped.startswith('REASONING:'): # Keep for compatibility or if model uses it
+                    if current_key and accumulated_value and current_key != 'component_analysis_processed': result[current_key.lower()] = "\n".join(accumulated_value).strip()
                     reasoning_text = line_stripped.replace('REASONING:', '').strip()
                     accumulated_value = [reasoning_text] if reasoning_text else []
                     for next_line in lines[line_idx+1:]:
-                        if next_line.strip().startswith('CONFIDENCE:') or next_line.strip().startswith('VERDICT:'): break
+                        if next_line.strip().startswith('CONFIDENCE:') or \
+                           next_line.strip().startswith('VERDICT:') or \
+                           next_line.strip().startswith('EVIDENCE:') or \
+                           next_line.strip().startswith('COMPONENT_ANALYSIS:'): # Stop before next key
+                            break
                         accumulated_value.append(next_line)
                     result['reasoning'] = "\n".join(accumulated_value).strip()
                     current_key = 'reasoning_processed'; accumulated_value = []
                 elif line_stripped.startswith('CONFIDENCE:'):
-                    if current_key and accumulated_value and current_key != 'reasoning_processed': result[current_key.lower()] = "\n".join(accumulated_value).strip()
+                    if current_key and accumulated_value and current_key not in ['reasoning_processed', 'component_analysis_processed', 'explanation_processed']: result[current_key.lower()] = "\n".join(accumulated_value).strip()
                     conf_str = line_stripped.replace('CONFIDENCE:', '').strip()
                     try: result['confidence'] = min(max(float(conf_str), 0.0), 1.0)
                     except ValueError: logger.warning(f"Could not parse confidence: {conf_str}")
                     current_key = None; accumulated_value = []
                 elif line_stripped.startswith('EVIDENCE:'):
-                    if current_key and accumulated_value and current_key != 'reasoning_processed': result[current_key.lower()] = "\n".join(accumulated_value).strip()
-                    result['evidence'] = line_stripped.replace('EVIDENCE:', '').strip()
-                    current_key = 'evidence'; accumulated_value = [result['evidence']] if result['evidence'] else []
+                    if current_key and accumulated_value and current_key not in ['reasoning_processed', 'component_analysis_processed', 'explanation_processed']: result[current_key.lower()] = "\n".join(accumulated_value).strip()
+                    evidence_text = line_stripped.replace('EVIDENCE:', '').strip()
+                    accumulated_value = [evidence_text] if evidence_text else []
+                    # Capture multi-line evidence
+                    for next_line in lines[line_idx+1:]:
+                        if next_line.strip().startswith('EXPLANATION:') or \
+                           next_line.strip().startswith('VERDICT:') or \
+                           next_line.strip().startswith('CONFIDENCE:') or \
+                           next_line.strip().startswith('COMPONENT_ANALYSIS:'): # Stop before next key
+                            break
+                        accumulated_value.append(next_line)
+                    result['evidence'] = "\n".join(accumulated_value).strip()
+                    current_key = 'evidence_processed'; accumulated_value = []
                 elif line_stripped.startswith('EXPLANATION:'):
-                     if current_key and accumulated_value and current_key != 'reasoning_processed': result[current_key.lower()] = "\n".join(accumulated_value).strip()
-                     result['explanation'] = line_stripped.replace('EXPLANATION:', '').strip()
-                     current_key = 'explanation'; accumulated_value = [result['explanation']] if result['explanation'] else []
-                elif current_key and current_key not in ['reasoning_processed']:
+                     if current_key and accumulated_value and current_key not in ['reasoning_processed', 'component_analysis_processed', 'evidence_processed']: result[current_key.lower()] = "\n".join(accumulated_value).strip()
+                     explanation_text = line_stripped.replace('EXPLANATION:', '').strip()
+                     accumulated_value = [explanation_text] if explanation_text else []
+                     # Capture multi-line explanation
+                     for next_line in lines[line_idx+1:]:
+                         if next_line.strip().startswith('VERDICT:') or \
+                            next_line.strip().startswith('CONFIDENCE:') or \
+                            next_line.strip().startswith('COMPONENT_ANALYSIS:') or \
+                            next_line.strip().startswith('EVIDENCE:'): # Stop before next key
+                             break
+                         accumulated_value.append(next_line)
+                     result['explanation'] = "\n".join(accumulated_value).strip()
+                     current_key = 'explanation_processed'; accumulated_value = []
+                elif current_key and current_key not in ['reasoning_processed', 'component_analysis_processed', 'evidence_processed', 'explanation_processed']:
                     accumulated_value.append(line)
-            if current_key and accumulated_value and current_key not in ['reasoning_processed']: result[current_key.lower()] = "\n".join(accumulated_value).strip()
-            if result.get('reasoning') == response and result.get('explanation') != response and result.get('explanation'): result['reasoning'] = result['explanation']
-            if result['explanation'] == response and result['reasoning'] != response : result['explanation'] = result['reasoning']
-            elif result['explanation'] == response and (result['verdict'] != "INSUFFICIENT_DATA" or result['confidence'] != 0.0):
-                 if 'REASONING:' not in response and 'EXPLANATION:' not in response:
-                    result['explanation'] = "Raw model response: " + response
-                    if not result.get('reasoning') or result.get('reasoning') == response: result['reasoning'] = "Raw model response: " + response
+            
+            if current_key and accumulated_value and current_key not in ['reasoning_processed', 'component_analysis_processed', 'evidence_processed', 'explanation_processed']: 
+                result[current_key.lower()] = "\n".join(accumulated_value).strip()
+
+            # Fallback logic if specific fields are not parsed
+            if result.get('reasoning') == response and result.get('explanation') != response and result.get('explanation'):
+                result['reasoning'] = result['explanation']
+            if result.get('explanation') == response and result.get('reasoning') != response:
+                result['explanation'] = result['reasoning']
+            
+            # If reasoning and explanation are still the raw response, and component_analysis was parsed, use it.
+            if result.get('component_analysis') and result.get('component_analysis') != response:
+                if result.get('reasoning') == response:
+                    result['reasoning'] = result.get('component_analysis')
+                if result.get('explanation') == response:
+                    result['explanation'] = result.get('component_analysis')
+            
+            # Final fallback for reasoning/explanation if they are still the raw response
+            is_parsed = result['verdict'] != "INSUFFICIENT_DATA" or \
+                        result['confidence'] != 0.0 or \
+                        (result.get('component_analysis') and result.get('component_analysis') != response) or \
+                        (result.get('evidence') and result.get('evidence') != "") or \
+                        (result.get('explanation') != response and result.get('explanation') != "") or \
+                        (result.get('reasoning') != response and result.get('reasoning') != "")
+
+            if not is_parsed: # If no specific fields were parsed, mark reasoning/explanation as raw
+                 if 'VERDICT:' not in response and 'CONFIDENCE:' not in response and \
+                    'COMPONENT_ANALYSIS:' not in response and 'EVIDENCE:' not in response and \
+                    'EXPLANATION:' not in response and 'REASONING:' not in response:
+                    raw_response_prefix = "Raw model response: "
+                    if result.get('reasoning') == response: result['reasoning'] = raw_response_prefix + response
+                    if result.get('explanation') == response: result['explanation'] = raw_response_prefix + response
+
         except Exception as e:
             logger.warning(f"Error parsing response: {e}. Raw response: '{response[:200]}...'")
         return result
